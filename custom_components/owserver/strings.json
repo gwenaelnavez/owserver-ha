@@ -1,0 +1,25 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to OW-SERVER",
+        "description": "Enter the connection details for your EDS OW-SERVER.",
+        "data": {
+          "host": "Hostname or IP address",
+          "port": "Port (default: 80)",
+          "username": "Username (default: admin)",
+          "password": "Password (default: eds)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to the OW-SERVER. Check the host and port.",
+      "invalid_xml": "Invalid response from OW-SERVER. Check if the device is an OW-SERVER.",
+      "no_devices": "No 1-Wire devices found on the OW-SERVER.",
+      "timeout": "Connection timed out. Check the host and port."
+    },
+    "abort": {
+      "already_configured": "This OW-SERVER is already configured."
+    }
+  }
+}
