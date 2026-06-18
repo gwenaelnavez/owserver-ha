@@ -124,7 +124,6 @@ class OWServerSensor(CoordinatorEntity, SensorEntity):
             manufacturer="EDS",
             model=model,
             sw_version="1.0",
-            via_device=(DOMAIN, coordinator.host),
         )
 
     @property
@@ -138,6 +137,3 @@ class OWServerSensor(CoordinatorEntity, SensorEntity):
         return sensor.get("value")
 
 
-def dev_info_type(coordinator: OWServerCoordinator, rom_id: str) -> str:
-    dev = coordinator.data.get(rom_id, {})
-    return dev.get("type", "Unknown")
