@@ -6,7 +6,7 @@
 
 ---
 
-[English](README.md) | [Français](README.fr.md) | [Deutsch](README.de.md)
+[English](README.md) | [Français](README.fr.md) | [Deutsch](README.de.md) | [Español](README.es.md) | [Nederlands](README.nl.md) | [Português (Brasil)](README.pt-br.md)
 
 # 🌡️ OW-SERVER (EDS) for Home Assistant
 
