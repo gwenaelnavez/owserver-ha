@@ -160,7 +160,7 @@ class OWServerCoordinator(DataUpdateCoordinator):
                 "rom_id": rom_id,
                 "health": health,
                 "channel": channel,
-                "name": f"{device_type} ({rom_id[-4:]})",
+                "name": f"{device_type} ({rom_id})",
                 "sensors": sensors,
             }
 

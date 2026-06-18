@@ -107,10 +107,20 @@ class OWServerSensor(CoordinatorEntity, SensorEntity):
         elif device_class == SensorDeviceClass.TEMPERATURE:
             self._attr_native_unit_of_measurement = "°C"
 
-        model = dev_info_type(coordinator, rom_id)
+        dev = coordinator.data.get(rom_id, {})
+        model = dev.get("type", "Unknown")
+        channel = dev.get("channel")
+        health = dev.get("health")
+
+        self._attr_extra_state_attributes = {
+            "rom_id": rom_id,
+            "channel": channel,
+            "health": health,
+        }
+
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, rom_id)},
-            name=device_name,
+            name=f"{model} ({rom_id})",
             manufacturer="EDS",
             model=model,
             sw_version="1.0",
