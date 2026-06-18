@@ -95,6 +95,7 @@ custom_components/owserver/
 ├── sensor.py         # Sensor-platform
 ├── services.yaml     # Service-definities
 └── strings.json      # Vertalingen
+```
 
 ---
 
