@@ -2,19 +2,17 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 from xml.etree import ElementTree
 
 import aiohttp
 import voluptuous as vol
 
 from homeassistant import config_entries
+from homeassistant.const import CONF_HOST, CONF_PORT, CONF_USERNAME, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
 
 from .const import (
-    CONF_HOST,
-    CONF_PORT,
-    CONF_USERNAME,
-    CONF_PASSWORD,
     DOMAIN,
     DEFAULT_PORT,
     DEFAULT_USERNAME,
@@ -32,6 +30,11 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
         vol.Optional(CONF_PASSWORD, default=DEFAULT_PASSWORD): str,
     }
 )
+
+KNOWN_DEVICE_TYPES = frozenset({
+    "DS18B20", "DS18S20", "DS1822", "DS1820", "DS2438",
+    "DS2406", "DS2408", "DS2423", "DS2450",
+})
 
 
 async def validate_connection(hass: HomeAssistant, data: dict) -> list:
@@ -54,7 +57,6 @@ async def validate_connection(hass: HomeAssistant, data: dict) -> list:
             text = await response.text()
 
             if text.strip().startswith("<"):
-                import re
                 text = re.sub(r'\s+xmlns(:\w+)?="[^"]*"', "", text, count=1)
                 root = ElementTree.fromstring(text)
                 devices = []
@@ -68,7 +70,10 @@ async def validate_connection(hass: HomeAssistant, data: dict) -> list:
                             elif elem.tag == "Name":
                                 name = elem.text
                         if rom_id:
-                            devices.append({"rom_id": rom_id, "name": name or child.tag[4:]})
+                            devices.append({
+                                "rom_id": rom_id,
+                                "name": name or child.tag[4:],
+                            })
                 return devices
 
             tokens = text.split()
@@ -76,15 +81,17 @@ async def validate_connection(hass: HomeAssistant, data: dict) -> list:
             idx = 0
             while idx < len(tokens):
                 t = tokens[idx]
-                if t in ("DS18B20", "DS18S20", "DS1822", "DS1820", "DS2438",
-                         "DS2406", "DS2408", "DS2423", "DS2450") or t.startswith("EDS"):
+                if t in KNOWN_DEVICE_TYPES or t.startswith("EDS"):
                     if idx + 13 < len(tokens) and len(tokens[idx + 2]) >= 14:
                         break
                 idx += 1
             while idx + 13 < len(tokens):
                 rom_id = tokens[idx + 2]
                 device_type = tokens[idx]
-                devices.append({"rom_id": rom_id, "name": f"{device_type} ({rom_id[-4:]})"})
+                devices.append({
+                    "rom_id": rom_id,
+                    "name": f"{device_type} ({rom_id})",
+                })
                 idx += 14
             return devices
 

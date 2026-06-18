@@ -1,0 +1,7 @@
+refresh:
+  name: Refresh
+  description: Force a refresh of all OW-SERVER sensor data.
+  target:
+    entity:
+      integration: owserver
+      domain: sensor

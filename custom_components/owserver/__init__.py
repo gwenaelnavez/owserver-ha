@@ -1,31 +1,26 @@
 from __future__ import annotations
 
-import logging
-
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_HOST, CONF_PORT, CONF_USERNAME, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryNotReady
 
 from .const import (
     DOMAIN,
-    CONF_HOST,
-    CONF_PORT,
-    CONF_USERNAME,
-    CONF_PASSWORD,
     CONF_POLL_INTERVAL,
+    DEFAULT_PORT,
     DEFAULT_POLL_INTERVAL,
 )
 from .coordinator import OWServerCoordinator
 
 PLATFORMS = ["sensor"]
 
-_LOGGER = logging.getLogger(__name__)
-
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})
 
     host = entry.data[CONF_HOST]
-    port = entry.data.get(CONF_PORT, 80)
+    port = entry.data.get(CONF_PORT, DEFAULT_PORT)
     username = entry.data.get(CONF_USERNAME)
     password = entry.data.get(CONF_PASSWORD)
     poll_interval = entry.data.get(CONF_POLL_INTERVAL, DEFAULT_POLL_INTERVAL)
@@ -34,7 +29,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass, host, port, username, password, poll_interval
     )
 
-    await coordinator.async_config_entry_first_refresh()
+    try:
+        await coordinator.async_config_entry_first_refresh()
+    except Exception as err:
+        raise ConfigEntryNotReady(f"Failed to connect to OW-SERVER: {err}") from err
 
     hass.data[DOMAIN][entry.entry_id] = coordinator
 

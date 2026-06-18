@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import logging
-
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
@@ -16,8 +14,6 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
 from .coordinator import OWServerCoordinator
-
-_LOGGER = logging.getLogger(__name__)
 
 UNIT_MAP = {
     "Centigrade": "°C",
@@ -64,16 +60,12 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     coordinator: OWServerCoordinator = hass.data[DOMAIN][entry.entry_id]
-    entities = []
 
-    for rom_id, dev_info in coordinator.data.items():
-        sensor_name = dev_info.get("name") or dev_info.get("type", "Unknown")
-        for sensor_tag, sensor_val in dev_info["sensors"].items():
-            entities.append(
-                OWServerSensor(coordinator, rom_id, sensor_name, sensor_tag, sensor_val)
-            )
-
-    async_add_entities(entities)
+    async_add_entities(
+        OWServerSensor(coordinator, rom_id, sensor_tag, sensor_val)
+        for rom_id, dev_info in coordinator.data.items()
+        for sensor_tag, sensor_val in dev_info["sensors"].items()
+    )
 
 
 class OWServerSensor(CoordinatorEntity, SensorEntity):
@@ -83,7 +75,6 @@ class OWServerSensor(CoordinatorEntity, SensorEntity):
         self,
         coordinator: OWServerCoordinator,
         rom_id: str,
-        device_name: str,
         sensor_tag: str,
         sensor_val: dict,
     ) -> None:
@@ -135,5 +126,3 @@ class OWServerSensor(CoordinatorEntity, SensorEntity):
         if sensor is None:
             return None
         return sensor.get("value")
-
-

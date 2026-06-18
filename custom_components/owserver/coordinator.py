@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 from datetime import timedelta
 from xml.etree import ElementTree
 
@@ -33,31 +34,30 @@ class OWServerCoordinator(DataUpdateCoordinator):
         )
         self.host = host
         self.port = port
-        self.username = username
-        self.password = password
         self._base_url = f"http://{host}:{port}"
+
         self._auth = None
         if username and password:
             self._auth = aiohttp.BasicAuth(username, password)
 
+        timeout = aiohttp.ClientTimeout(total=10)
+        self._session = aiohttp.ClientSession(auth=self._auth, timeout=timeout)
+
     async def _async_update_data(self) -> dict:
         url = f"{self._base_url}{DETAILS_XML_PATH}"
         try:
-            timeout = aiohttp.ClientTimeout(total=10)
-            async with aiohttp.ClientSession(auth=self._auth, timeout=timeout) as session:
-                async with session.get(url) as response:
-                    response.raise_for_status()
-                    text = await response.text()
-                    if text.strip().startswith("<"):
-                        return self._parse_xml(text)
-                    return self._parse_csv(text)
+            async with self._session.get(url) as response:
+                response.raise_for_status()
+                text = await response.text()
+                if text.strip().startswith("<"):
+                    return self._parse_xml(text)
+                return self._parse_csv(text)
         except aiohttp.ClientError as err:
             raise UpdateFailed(f"Error communicating with OW-SERVER: {err}") from err
         except (TimeoutError, asyncio.TimeoutError) as err:
             raise UpdateFailed(f"Timeout communicating with OW-SERVER: {err}") from err
 
     def _parse_xml(self, xml_text: str) -> dict:
-        import re
         xml_text = re.sub(r'\s+xmlns(:\w+)?="[^"]*"', "", xml_text, count=1)
         root = ElementTree.fromstring(xml_text)
         devices = {}
@@ -110,11 +110,12 @@ class OWServerCoordinator(DataUpdateCoordinator):
         devices = {}
 
         idx = 0
+        known_types = ("DS18B20", "DS18S20", "DS1822", "DS1820", "DS2438",
+                       "DS2406", "DS2408", "DS2423", "DS2450", "DS2405",
+                       "DS2413", "DS28EA00", "DS1921", "DS1920")
         while idx < len(tokens):
             t = tokens[idx]
-            if t in ("DS18B20", "DS18S20", "DS1822", "DS1820", "DS2438", "DS2406",
-                     "DS2408", "DS2423", "DS2450", "DS2405", "DS2413", "DS28EA00",
-                     "DS1921", "DS1920") or t.startswith("EDS"):
+            if t in known_types or t.startswith("EDS"):
                 if idx + 13 < len(tokens) and len(tokens[idx + 2]) >= 14:
                     break
             idx += 1
@@ -125,15 +126,10 @@ class OWServerCoordinator(DataUpdateCoordinator):
             rom_id = tokens[idx + 2]
             health = tokens[idx + 3]
             channel = tokens[idx + 4]
-            raw_data = tokens[idx + 5]
             primary_val_num = tokens[idx + 6]
             primary_val_unit1 = tokens[idx + 7]
             primary_val_unit2 = tokens[idx + 8]
             temperature = tokens[idx + 9]
-            user_byte1 = tokens[idx + 10]
-            user_byte2 = tokens[idx + 11]
-            resolution = tokens[idx + 12]
-            power_source = tokens[idx + 13]
 
             primary_unit = f"{primary_val_unit1} {primary_val_unit2}"
             sensors = {}
@@ -183,3 +179,6 @@ class OWServerCoordinator(DataUpdateCoordinator):
                 return {"value": float(parts[0]), "unit": parts[1] if len(parts) > 1 else unit}
             except (ValueError, IndexError):
                 return None
+
+    async def async_close(self) -> None:
+        await self._session.close()
