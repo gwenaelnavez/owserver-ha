@@ -1,5 +1,7 @@
 # OW-SERVER (EDS) for Home Assistant
 
+[English](README.md) | [Français](README.fr.md) | [Deutsch](README.de.md)
+
 Home Assistant integration for [EDS OW-SERVER](https://www.embeddeddatasystems.com/OW-SERVER--1-Wire-to-Ethernet-Server_p_152.html), a 1-Wire to Ethernet server.
 
 ## Features
@@ -17,10 +19,10 @@ Home Assistant integration for [EDS OW-SERVER](https://www.embeddeddatasystems.c
 ### HACS (recommended)
 
 1. Open HACS in Home Assistant
-2. Go to "Integrations"
-3. Click the three dots in the top right and select "Custom repositories"
+2. Go to **Integrations**
+3. Click the three dots in the top right and select **Custom repositories**
 4. Add `https://github.com/gwenaelnavez/owserver-ha` as a custom repository (category: Integration)
-5. Click "Install"
+5. Click **Install**
 6. Restart Home Assistant
 
 ### Manual
