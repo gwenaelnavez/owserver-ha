@@ -45,19 +45,27 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     if entry.data.get(CONF_ENABLE_PANEL, True):
-        _async_register_panel(hass)
+        await _async_register_panel(hass)
 
     return True
 
 
-def _async_register_panel(hass: HomeAssistant) -> None:
-    from homeassistant.components.frontend import (
-        async_register_built_in_panel,
-    )
+async def _async_register_panel(hass: HomeAssistant) -> None:
+    from homeassistant.components import panel_custom
+    from homeassistant.components.frontend import async_panel_exists, async_remove_panel
+    from homeassistant.components.http import StaticPathConfig
 
     panel_dir = Path(__file__).parent / "panel"
 
-    class OWServerPanelView(HomeAssistantView):
+    await hass.http.async_register_static_paths([
+        StaticPathConfig(
+            url_path="/owserver_panel",
+            path=str(panel_dir),
+            cache_headers=False,
+        )
+    ])
+
+    class OWServerPanelHTML(HomeAssistantView):
         requires_auth = False
         url = "/api/owserver/panel"
         name = "api:owserver:panel"
@@ -68,19 +76,20 @@ def _async_register_panel(hass: HomeAssistant) -> None:
             )
             return web.Response(text=text, content_type="text/html")
 
-    hass.http.register_view(OWServerPanelView)
+    hass.http.register_view(OWServerPanelHTML)
 
-    async_register_built_in_panel(
+    if async_panel_exists(hass, "owserver"):
+        async_remove_panel(hass, "owserver")
+
+    await panel_custom.async_register_panel(
         hass=hass,
-        component_name="iframe",
+        frontend_url_path="owserver",
+        webcomponent_name="owserver-panel",
         sidebar_title="OW-SERVER",
         sidebar_icon="mdi:thermometer",
-        frontend_url_path="owserver",
-        config={
-            "url": "/api/owserver/panel",
-        },
+        module_url="/owserver_panel/panel.js",
+        embed_iframe=False,
         require_admin=False,
-        update=True,
     )
 
 

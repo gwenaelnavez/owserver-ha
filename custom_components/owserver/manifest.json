@@ -12,6 +12,10 @@
   "loggers": [
     "custom_components.owserver"
   ],
+  "dependencies": [
+    "panel_custom",
+    "frontend"
+  ],
   "requirements": [],
   "version": "1.0.1"
 }
