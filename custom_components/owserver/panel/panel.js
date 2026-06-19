@@ -2,6 +2,11 @@ const COLORS = ['#1a73e8','#f44336','#4caf50','#ff9800','#9c27b0','#00bcd4','#ff
 const OWSERVER_DEVICE_PATTERN = /^sensor\.(ds18b20|ds18s20|ds1822|ds1820|ds2438|ds2406|ds2408|ds2423|ds2450|eds)[a-z0-9]*_[0-9a-f]{16}_temperature$/i;
 
 class OWServerPanel extends HTMLElement {
+  constructor() {
+    super();
+    this._chartReady = this._loadChartJS();
+  }
+
   set hass(hass) { this._hass = hass; this.loadData(); }
 
   connectedCallback() {
@@ -53,35 +58,32 @@ class OWServerPanel extends HTMLElement {
 
     this.shadowRoot.getElementById('refreshBtn').addEventListener('click', () => this.loadData());
     this.shadowRoot.getElementById('rangeSelect').addEventListener('change', () => this.loadData());
-
-    this._loadChartJS();
   }
 
   async _loadChartJS() {
-    if (window.Chart) { this.loadData(); return; }
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js';
-    script.onload = () => {
-      const script2 = document.createElement('script');
-      script2.src = 'https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3/dist/chartjs-adapter-date-fns.bundle.min.js';
-      script2.onload = () => this.loadData();
-      document.head.appendChild(script2);
-    };
-    document.head.appendChild(script);
-  }
-
-  _headers() {
-    const token = this._hass?.auth?.data?.access_token;
-    return token ? { Authorization: `Bearer ${token}` } : {};
+    if (window.Chart) return;
+    await new Promise((resolve) => {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js';
+      script.onload = resolve;
+      document.head.appendChild(script);
+    });
+    await new Promise((resolve) => {
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3/dist/chartjs-adapter-date-fns.bundle.min.js';
+      script.onload = resolve;
+      document.head.appendChild(script);
+    });
   }
 
   async _fetchJson(url) {
-    const resp = await fetch(url, { headers: this._headers() });
+    const resp = await fetch(url);
     if (!resp.ok) throw new Error(`API error: ${resp.status}`);
     return resp.json();
   }
 
   async loadData() {
+    await this._chartReady;
     if (!this._hass) return;
 
     const root = this.shadowRoot;
