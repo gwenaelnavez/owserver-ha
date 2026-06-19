@@ -66,7 +66,7 @@ async def _async_register_panel(hass: HomeAssistant) -> None:
         component_name="custom-panel",
         sidebar_title="OW-SERVER",
         sidebar_icon="mdi:thermometer",
-        url_path="owserver",
+        frontend_url_path="owserver",
         config={
             "_panel_custom": {
                 "name": "owserver-panel",
