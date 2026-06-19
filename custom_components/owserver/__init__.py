@@ -42,28 +42,33 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     if entry.data.get(CONF_ENABLE_PANEL, True):
-        await _async_register_panel(hass)
+        _async_register_panel(hass)
 
     return True
 
 
-async def _async_register_panel(hass: HomeAssistant) -> None:
+def _async_register_panel(hass: HomeAssistant) -> None:
+    from aiohttp import web
     from homeassistant.components.frontend import (
         async_panel_exists,
         async_register_built_in_panel,
         async_remove_panel,
     )
-    from homeassistant.components.http import StaticPathConfig
+    from homeassistant.components.http import HomeAssistantView
 
-    panel_path = str(Path(__file__).parent / "panel")
+    class OWServerPanelView(HomeAssistantView):
+        requires_auth = False
+        url = "/api/owserver/panel"
+        name = "api:owserver:panel"
 
-    await hass.http.async_register_static_paths([
-        StaticPathConfig(
-            url_path="/static/owserver",
-            path=panel_path,
-            cache_headers=False,
-        )
-    ])
+        async def get(self, request):
+            panel_file = Path(__file__).parent / "panel" / "panel.html"
+            return web.Response(
+                text=panel_file.read_text(encoding="utf-8"),
+                content_type="text/html",
+            )
+
+    hass.http.register_view(OWServerPanelView)
 
     if async_panel_exists(hass, "owserver"):
         async_remove_panel(hass, "owserver")
@@ -75,7 +80,7 @@ async def _async_register_panel(hass: HomeAssistant) -> None:
         sidebar_icon="mdi:thermometer",
         frontend_url_path="owserver",
         config={
-            "url": "/static/owserver/panel.html",
+            "url": "/api/owserver/panel",
         },
         require_admin=False,
     )
