@@ -56,31 +56,48 @@ def _async_register_panel(hass: HomeAssistant) -> None:
     )
     from homeassistant.components.http import HomeAssistantView
 
-    class OWServerPanelView(HomeAssistantView):
+    panel_dir = Path(__file__).parent / "panel"
+
+    class OWServerPanelHTML(HomeAssistantView):
         requires_auth = False
         url = "/api/owserver/panel"
         name = "api:owserver:panel"
 
         async def get(self, request):
-            panel_file = Path(__file__).parent / "panel" / "panel.html"
-            return web.Response(
-                text=panel_file.read_text(encoding="utf-8"),
-                content_type="text/html",
+            text = await hass.async_add_executor_job(
+                lambda: (panel_dir / "panel.html").read_text(encoding="utf-8")
             )
+            return web.Response(text=text, content_type="text/html")
 
-    hass.http.register_view(OWServerPanelView)
+    class OWServerPanelJS(HomeAssistantView):
+        requires_auth = False
+        url = "/api/owserver/panel.js"
+        name = "api:owserver:panel:js"
+
+        async def get(self, request):
+            text = await hass.async_add_executor_job(
+                lambda: (panel_dir / "panel.js").read_text(encoding="utf-8")
+            )
+            return web.Response(text=text, content_type="application/javascript")
+
+    hass.http.register_view(OWServerPanelHTML)
+    hass.http.register_view(OWServerPanelJS)
 
     if async_panel_exists(hass, "owserver"):
         async_remove_panel(hass, "owserver")
 
     async_register_built_in_panel(
         hass=hass,
-        component_name="iframe",
+        component_name="custom-panel",
         sidebar_title="OW-SERVER",
         sidebar_icon="mdi:thermometer",
         frontend_url_path="owserver",
         config={
-            "url": "/api/owserver/panel",
+            "_panel_custom": {
+                "name": "owserver-panel",
+                "module_url": "/api/owserver/panel.js",
+                "embed_iframe": True,
+            }
         },
         require_admin=False,
     )
