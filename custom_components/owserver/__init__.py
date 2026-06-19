@@ -2,6 +2,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from aiohttp import web
+
+from homeassistant.components.http import HomeAssistantView
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PORT, CONF_USERNAME, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
@@ -48,17 +51,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 def _async_register_panel(hass: HomeAssistant) -> None:
-    from aiohttp import web
     from homeassistant.components.frontend import (
-        async_panel_exists,
         async_register_built_in_panel,
-        async_remove_panel,
     )
-    from homeassistant.components.http import HomeAssistantView
 
     panel_dir = Path(__file__).parent / "panel"
 
-    class OWServerPanelHTML(HomeAssistantView):
+    class OWServerPanelView(HomeAssistantView):
         requires_auth = False
         url = "/api/owserver/panel"
         name = "api:owserver:panel"
@@ -69,37 +68,19 @@ def _async_register_panel(hass: HomeAssistant) -> None:
             )
             return web.Response(text=text, content_type="text/html")
 
-    class OWServerPanelJS(HomeAssistantView):
-        requires_auth = False
-        url = "/api/owserver/panel.js"
-        name = "api:owserver:panel:js"
-
-        async def get(self, request):
-            text = await hass.async_add_executor_job(
-                lambda: (panel_dir / "panel.js").read_text(encoding="utf-8")
-            )
-            return web.Response(text=text, content_type="application/javascript")
-
-    hass.http.register_view(OWServerPanelHTML)
-    hass.http.register_view(OWServerPanelJS)
-
-    if async_panel_exists(hass, "owserver"):
-        async_remove_panel(hass, "owserver")
+    hass.http.register_view(OWServerPanelView)
 
     async_register_built_in_panel(
         hass=hass,
-        component_name="custom-panel",
+        component_name="iframe",
         sidebar_title="OW-SERVER",
         sidebar_icon="mdi:thermometer",
         frontend_url_path="owserver",
         config={
-            "_panel_custom": {
-                "name": "owserver-panel",
-                "module_url": "/api/owserver/panel.js",
-                "embed_iframe": True,
-            }
+            "url": "/api/owserver/panel",
         },
         require_admin=False,
+        update=True,
     )
 
 
