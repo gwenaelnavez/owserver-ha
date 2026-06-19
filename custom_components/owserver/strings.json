@@ -8,7 +8,8 @@
           "host": "Hostname or IP address",
           "port": "Port (default: 80)",
           "username": "Username (default: admin)",
-          "password": "Password (default: eds)"
+          "password": "Password (default: eds)",
+          "enable_panel": "Add to sidebar panel"
         }
       }
     },

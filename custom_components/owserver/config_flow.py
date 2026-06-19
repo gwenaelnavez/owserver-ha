@@ -17,6 +17,8 @@ from .const import (
     DEFAULT_PORT,
     DEFAULT_USERNAME,
     DEFAULT_PASSWORD,
+    DEFAULT_ENABLE_PANEL,
+    CONF_ENABLE_PANEL,
     DETAILS_XML_PATH,
 )
 
@@ -28,6 +30,7 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
         vol.Optional(CONF_PORT, default=DEFAULT_PORT): int,
         vol.Optional(CONF_USERNAME, default=DEFAULT_USERNAME): str,
         vol.Optional(CONF_PASSWORD, default=DEFAULT_PASSWORD): str,
+        vol.Optional(CONF_ENABLE_PANEL, default=DEFAULT_ENABLE_PANEL): bool,
     }
 )
 

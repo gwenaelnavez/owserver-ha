@@ -10,6 +10,7 @@ from homeassistant.exceptions import ConfigEntryNotReady
 from .const import (
     DOMAIN,
     CONF_POLL_INTERVAL,
+    CONF_ENABLE_PANEL,
     DEFAULT_PORT,
     DEFAULT_POLL_INTERVAL,
 )
@@ -40,7 +41,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
-    await _async_register_panel(hass)
+    if entry.data.get(CONF_ENABLE_PANEL, True):
+        await _async_register_panel(hass)
 
     return True
 
