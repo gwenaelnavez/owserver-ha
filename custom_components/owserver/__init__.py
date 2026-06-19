@@ -57,7 +57,7 @@ async def _async_register_panel(hass: HomeAssistant) -> None:
     panel_dir = Path(__file__).parent / "panel"
 
     class OWServerPanelView(HomeAssistantView):
-        requires_auth = False
+        requires_auth = True
         url = "/api/owserver/panel"
         name = "api:owserver:panel"
 
@@ -68,7 +68,7 @@ async def _async_register_panel(hass: HomeAssistant) -> None:
             return web.Response(text=text, content_type="text/html")
 
     class OWServerPanelJS(HomeAssistantView):
-        requires_auth = False
+        requires_auth = True
         url = "/api/owserver/panel.js"
         name = "api:owserver:panel:js"
 
