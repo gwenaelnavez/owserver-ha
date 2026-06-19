@@ -6,25 +6,26 @@ class OWServerPanel extends HTMLElement {
     this.attachShadow({ mode: "open" });
     this.shadowRoot.innerHTML = `
       <style>
-        :host { display: block; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: var(--primary-text-color, #e0e0e0); }
-        h1 { font-size: 1.5rem; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+        :host { display: block; padding: 20px; font-family: var(--paper-font-body_-_font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif); color: var(--primary-text-color); background: var(--primary-background-color); }
+        h1 { font-size: 1.5rem; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; color: var(--primary-text-color); }
         h1 small { font-size: 0.8rem; opacity: 0.6; font-weight: normal; }
         .controls { display: flex; gap: 10px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
         .controls select, .controls button {
-          background: var(--card-background-color, #1e1e1e); color: var(--primary-text-color, #e0e0e0); border: 1px solid var(--divider-color, #333); padding: 8px 14px; border-radius: 6px; font-size: 0.9rem;
+          background: var(--card-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); padding: 8px 14px; border-radius: 6px; font-size: 0.9rem;
         }
-        .controls button { background: var(--primary-color, #1a73e8); color: #fff; border: none; cursor: pointer; }
-        .controls button:hover { opacity: 0.8; }
-        .chart-container { background: var(--card-background-color, #1e1e1e); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+        .controls button { background: var(--primary-color); color: var(--text-primary-color, #fff); border: none; cursor: pointer; }
+        .controls button:hover { filter: brightness(1.2); }
+        .chart-container { background: var(--card-background-color); border-radius: var(--ha-card-border-radius, 10px); padding: 16px; margin-bottom: 16px; }
         .chart-container canvas { width: 100% !important; }
-        .error { padding: 20px; text-align: center; }
-        .loading { text-align: center; padding: 40px; }
-        .spinner { width: 40px; height: 40px; border: 3px solid var(--divider-color, #333); border-top-color: var(--primary-color, #1a73e8); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 20px auto; }
+        .error { padding: 20px; text-align: center; color: var(--error-color, #f44336); }
+        .loading { text-align: center; padding: 40px; color: var(--secondary-text-color); }
+        .spinner { width: 40px; height: 40px; border: 3px solid var(--divider-color); border-top-color: var(--primary-color); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 20px auto; }
         @keyframes spin { to { transform: rotate(360deg); } }
         .stats { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
-        .stat-card { background: var(--card-background-color, #1e1e1e); border-radius: 10px; padding: 16px 24px; flex: 1; min-width: 120px; }
-        .stat-card .value { font-size: 1.8rem; font-weight: bold; color: var(--primary-text-color, #fff); }
-        .stat-card .label { font-size: 0.8rem; opacity: 0.6; margin-top: 4px; }
+        .stat-card { background: var(--card-background-color); border-radius: var(--ha-card-border-radius, 10px); padding: 16px 24px; flex: 1; min-width: 120px; }
+        .stat-card .value { font-size: 1.8rem; font-weight: bold; color: var(--primary-text-color); }
+        .stat-card .label { font-size: 0.8rem; color: var(--secondary-text-color); margin-top: 4px; }
+        select { background: var(--card-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); }
       </style>
       <h1>
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7.5a5 5 0 1 0 6 0V5a3 3 0 0 0-3-3z"/><circle cx="12" cy="17" r="2" fill="currentColor" stroke="none"/></svg>
@@ -142,6 +143,8 @@ class OWServerPanel extends HTMLElement {
         chartsDiv.appendChild(container);
 
         const ctx = container.querySelector(`#chart-${idx}`).getContext('2d');
+        const dividerColor = getComputedStyle(this).getPropertyValue('--divider-color').trim() || '#333';
+        const textColor = getComputedStyle(this).getPropertyValue('--secondary-text-color').trim() || '#888';
         new Chart(ctx, {
           type: 'line',
           data: {
@@ -162,8 +165,8 @@ class OWServerPanel extends HTMLElement {
             animation: false,
             plugins: { legend: { display: false } },
             scales: {
-              x: { type: 'time', time: { tooltipFormat: 'MMM d, HH:mm', displayFormats: { hour: 'HH:mm', day: 'MMM d' } }, grid: { color: '#333' }, ticks: { color: '#888', maxTicksLimit: 8 } },
-              y: { grid: { color: '#333' }, ticks: { color: '#888', callback: v => v + '°C' } }
+              x: { type: 'time', time: { tooltipFormat: 'MMM d, HH:mm', displayFormats: { hour: 'HH:mm', day: 'MMM d' } }, grid: { color: dividerColor }, ticks: { color: textColor, maxTicksLimit: 8 } },
+              y: { grid: { color: dividerColor }, ticks: { color: textColor, callback: v => v + '°C' } }
             },
             interaction: { intersect: false, mode: 'nearest' }
           }
