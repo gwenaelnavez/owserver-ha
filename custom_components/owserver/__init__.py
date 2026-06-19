@@ -48,7 +48,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 async def _async_register_panel(hass: HomeAssistant) -> None:
-    from homeassistant.components.frontend import async_register_built_in_panel
+    from homeassistant.components.frontend import (
+        async_panel_exists,
+        async_register_built_in_panel,
+        async_remove_panel,
+    )
     from homeassistant.components.http import StaticPathConfig
 
     panel_path = str(Path(__file__).parent / "panel")
@@ -61,7 +65,10 @@ async def _async_register_panel(hass: HomeAssistant) -> None:
         )
     ])
 
-    await async_register_built_in_panel(
+    if async_panel_exists(hass, "owserver"):
+        async_remove_panel(hass, "owserver")
+
+    async_register_built_in_panel(
         hass=hass,
         component_name="custom-panel",
         sidebar_title="OW-SERVER",
@@ -79,7 +86,10 @@ async def _async_register_panel(hass: HomeAssistant) -> None:
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    from homeassistant.components.frontend import async_remove_panel
+
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
         hass.data[DOMAIN].pop(entry.entry_id)
+        async_remove_panel(hass, "owserver")
     return unload_ok
