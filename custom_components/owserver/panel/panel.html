@@ -65,12 +65,11 @@
       return resp.json();
     }
 
+    const OWSERVER_DEVICE_PATTERN = /^sensor\.(ds18b20|ds18s20|ds1822|ds1820|ds2438|ds2406|ds2408|ds2423|ds2450|eds)[a-z0-9]*_[0-9a-f]{16}_temperature$/i;
+
     async function getOwserverSensors() {
       const states = await fetchApi('/api/states');
-      return states.filter(s => s.entity_id.startsWith('sensor.') && (
-        s.entity_id.includes('owserver') ||
-        s.attributes?.device_info?.identifiers?.some?.(i => i.includes?.('owserver'))
-      ) && (s.attributes?.unit_of_measurement === '°C' || s.attributes?.unit_of_measurement === '°F'));
+      return states.filter(s => OWSERVER_DEVICE_PATTERN.test(s.entity_id));
     }
 
     function tempColor(t) {
