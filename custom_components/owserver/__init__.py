@@ -2,9 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from aiohttp import web
-
-from homeassistant.components.http import HomeAssistantView
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_HOST, CONF_PORT, CONF_USERNAME, CONF_PASSWORD
 from homeassistant.core import HomeAssistant
@@ -51,21 +48,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 async def _async_register_panel(hass: HomeAssistant) -> None:
+    from aiohttp import web
     from homeassistant.components import panel_custom
     from homeassistant.components.frontend import async_panel_exists, async_remove_panel
+    from homeassistant.components.http import HomeAssistantView
 
     panel_dir = Path(__file__).parent / "panel"
-
-    class OWServerPanelView(HomeAssistantView):
-        requires_auth = True
-        url = "/api/owserver/panel"
-        name = "api:owserver:panel"
-
-        async def get(self, request):
-            text = await hass.async_add_executor_job(
-                lambda: (panel_dir / "panel.html").read_text(encoding="utf-8")
-            )
-            return web.Response(text=text, content_type="text/html")
 
     class OWServerPanelJS(HomeAssistantView):
         requires_auth = True
@@ -78,7 +66,6 @@ async def _async_register_panel(hass: HomeAssistant) -> None:
             )
             return web.Response(text=text, content_type="text/javascript")
 
-    hass.http.register_view(OWServerPanelView)
     hass.http.register_view(OWServerPanelJS)
 
     if async_panel_exists(hass, "owserver"):
