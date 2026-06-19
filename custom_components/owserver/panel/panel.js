@@ -2,6 +2,8 @@ const COLORS = ['#1a73e8','#f44336','#4caf50','#ff9800','#9c27b0','#00bcd4','#ff
 const OWSERVER_DEVICE_PATTERN = /^sensor\.(ds18b20|ds18s20|ds1822|ds1820|ds2438|ds2406|ds2408|ds2423|ds2450|eds)[a-z0-9]*_[0-9a-f]{16}_temperature$/i;
 
 class OWServerPanel extends HTMLElement {
+  set hass(hass) { this._hass = hass; this.loadData(); }
+
   connectedCallback() {
     this.attachShadow({ mode: "open" });
     this.shadowRoot.innerHTML = `
@@ -68,7 +70,20 @@ class OWServerPanel extends HTMLElement {
     document.head.appendChild(script);
   }
 
+  _headers() {
+    const token = this._hass?.auth?.data?.access_token;
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }
+
+  async _fetchJson(url) {
+    const resp = await fetch(url, { headers: this._headers() });
+    if (!resp.ok) throw new Error(`API error: ${resp.status}`);
+    return resp.json();
+  }
+
   async loadData() {
+    if (!this._hass) return;
+
     const root = this.shadowRoot;
     const chartsDiv = root.getElementById('charts');
     const loadingDiv = root.getElementById('loading');
@@ -81,9 +96,7 @@ class OWServerPanel extends HTMLElement {
     statsDiv.innerHTML = '';
 
     try {
-      const resp = await fetch('/api/states');
-      if (!resp.ok) throw new Error(`API error: ${resp.status}`);
-      const states = await resp.json();
+      const states = await this._fetchJson('/api/states');
 
       const sensors = states.filter(s => OWSERVER_DEVICE_PATTERN.test(s.entity_id));
       sensorCount.textContent = `${sensors.length} sensor${sensors.length > 1 ? 's' : ''}`;
@@ -100,9 +113,7 @@ class OWServerPanel extends HTMLElement {
       updateInfo.textContent = 'updated just now';
 
       const entityIds = sensors.map(s => s.entity_id);
-      const histResp = await fetch(`/api/history/period/${start.toISOString()}?filter_entity_id=${entityIds.join(',')}&minimal_response&no_attributes`);
-      if (!histResp.ok) throw new Error(`History API error: ${histResp.status}`);
-      const history = await histResp.json();
+      const history = await this._fetchJson(`/api/history/period/${start.toISOString()}?filter_entity_id=${entityIds.join(',')}&minimal_response&no_attributes`);
 
       const historyMap = {};
       history.forEach(h => {
