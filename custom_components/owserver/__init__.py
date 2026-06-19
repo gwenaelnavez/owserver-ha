@@ -70,16 +70,12 @@ async def _async_register_panel(hass: HomeAssistant) -> None:
 
     async_register_built_in_panel(
         hass=hass,
-        component_name="custom-panel",
+        component_name="iframe",
         sidebar_title="OW-SERVER",
         sidebar_icon="mdi:thermometer",
         frontend_url_path="owserver",
         config={
-            "_panel_custom": {
-                "name": "owserver-panel",
-                "module_url": "/static/owserver/panel.html",
-                "embed_iframe": True,
-            }
+            "url": "/static/owserver/panel.html",
         },
         require_admin=False,
     )
