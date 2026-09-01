@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from xml.etree import ElementTree
 
 import aiohttp
@@ -40,22 +40,30 @@ class OWServerCoordinator(DataUpdateCoordinator):
         if username and password:
             self._auth = aiohttp.BasicAuth(username, password)
 
-        timeout = aiohttp.ClientTimeout(total=10)
-        self._session = aiohttp.ClientSession(auth=self._auth, timeout=timeout)
+        self.last_seen: datetime | None = None
 
     async def _async_update_data(self) -> dict:
         url = f"{self._base_url}{DETAILS_XML_PATH}"
+        timeout = aiohttp.ClientTimeout(total=10)
         try:
-            async with self._session.get(url) as response:
-                response.raise_for_status()
-                text = await response.text()
-                if text.strip().startswith("<"):
-                    return self._parse_xml(text)
-                return self._parse_csv(text)
-        except aiohttp.ClientError as err:
+            async with aiohttp.ClientSession(
+                auth=self._auth, timeout=timeout
+            ) as session:
+                async with session.get(url) as response:
+                    response.raise_for_status()
+                    text = await response.text()
+                    if text.strip().startswith("<"):
+                        data = self._parse_xml(text)
+                    else:
+                        data = self._parse_csv(text)
+                    self.last_seen = datetime.now(tz=timezone.utc)
+                    return data
+        except (aiohttp.ClientError, OSError) as err:
             raise UpdateFailed(f"Error communicating with OW-SERVER: {err}") from err
         except (TimeoutError, asyncio.TimeoutError) as err:
             raise UpdateFailed(f"Timeout communicating with OW-SERVER: {err}") from err
+        except (ElementTree.ParseError, ValueError, IndexError) as err:
+            raise UpdateFailed(f"Invalid data from OW-SERVER: {err}") from err
 
     def _parse_xml(self, xml_text: str) -> dict:
         xml_text = re.sub(r'\s+xmlns(:\w+)?="[^"]*"', "", xml_text, count=1)
@@ -180,5 +188,4 @@ class OWServerCoordinator(DataUpdateCoordinator):
             except (ValueError, IndexError):
                 return None
 
-    async def async_close(self) -> None:
-        await self._session.close()
+

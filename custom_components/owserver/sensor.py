@@ -100,14 +100,8 @@ class OWServerSensor(CoordinatorEntity, SensorEntity):
 
         dev = coordinator.data.get(rom_id, {})
         model = dev.get("type", "Unknown")
-        channel = dev.get("channel")
-        health = dev.get("health")
-
-        self._attr_extra_state_attributes = {
-            "rom_id": rom_id,
-            "channel": channel,
-            "health": health,
-        }
+        self._channel = dev.get("channel")
+        self._health = dev.get("health")
 
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, rom_id)},
@@ -116,6 +110,17 @@ class OWServerSensor(CoordinatorEntity, SensorEntity):
             model=model,
             sw_version="1.0",
         )
+
+    @property
+    def extra_state_attributes(self) -> dict:
+        attrs = {
+            "rom_id": self._rom_id,
+            "channel": self._channel,
+            "health": self._health,
+        }
+        if self.coordinator.last_seen:
+            attrs["last_seen"] = self.coordinator.last_seen.isoformat()
+        return attrs
 
     @property
     def native_value(self):
