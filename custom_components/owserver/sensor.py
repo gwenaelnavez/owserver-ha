@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
@@ -14,6 +16,8 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN
 from .coordinator import OWServerCoordinator
+
+LAST_UPDATE_TAG = "last_update"
 
 UNIT_MAP = {
     "Centigrade": "°C",
@@ -61,11 +65,18 @@ async def async_setup_entry(
 ) -> None:
     coordinator: OWServerCoordinator = hass.data[DOMAIN][entry.entry_id]
 
-    async_add_entities(
+    entities = [
         OWServerSensor(coordinator, rom_id, sensor_tag, sensor_val)
         for rom_id, dev_info in coordinator.data.items()
         for sensor_tag, sensor_val in dev_info["sensors"].items()
-    )
+    ]
+    entities += [
+        OWServerLastUpdateSensor(coordinator, rom_id)
+        for rom_id in coordinator.data
+        if coordinator.data[rom_id].get("last_seen")
+    ]
+
+    async_add_entities(entities)
 
 
 class OWServerSensor(CoordinatorEntity, SensorEntity):
@@ -132,3 +143,42 @@ class OWServerSensor(CoordinatorEntity, SensorEntity):
         if sensor is None:
             return None
         return sensor.get("value")
+
+
+class OWServerLastUpdateSensor(CoordinatorEntity, SensorEntity):
+    _attr_has_entity_name = True
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+    _attr_name = "Last update"
+
+    def __init__(
+        self,
+        coordinator: OWServerCoordinator,
+        rom_id: str,
+    ) -> None:
+        super().__init__(coordinator)
+        self._rom_id = rom_id
+        self._attr_unique_id = f"{rom_id}_{LAST_UPDATE_TAG}"
+
+        dev = coordinator.data.get(rom_id, {})
+        model = dev.get("type", "Unknown")
+
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, rom_id)},
+            name=f"{model} ({rom_id})",
+            manufacturer="EDS",
+            model=model,
+            sw_version="1.0",
+        )
+
+    @property
+    def native_value(self) -> datetime | None:
+        data = self.coordinator.data.get(self._rom_id)
+        if data is None:
+            return None
+        last_seen = data.get("last_seen")
+        if not last_seen:
+            return None
+        try:
+            return datetime.fromisoformat(last_seen.replace(" ", "T", 1))
+        except (ValueError, IndexError):
+            return None

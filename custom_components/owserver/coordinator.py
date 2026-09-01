@@ -66,10 +66,20 @@ class OWServerCoordinator(DataUpdateCoordinator):
         devices = {}
 
         root_date = None
+        root_time = None
+        root_datetime = None
         for elem in root:
             if elem.tag == "Date" and elem.text:
                 root_date = elem.text.strip()
+            elif elem.tag == "Time" and elem.text:
+                root_time = elem.text.strip()
+            elif elem.tag == "DateTime" and elem.text:
+                root_datetime = elem.text.strip()
+            if root_datetime:
                 break
+        if root_datetime:
+            root_date = root_datetime.split(" ")[0]
+            root_time = root_datetime.split(" ")[1] if " " in root_datetime else root_time
 
         for child in root:
             tag = child.tag
@@ -83,6 +93,7 @@ class OWServerCoordinator(DataUpdateCoordinator):
                 "sensors": {},
             }
 
+            dev_datetime = None
             for elem in child:
                 if elem.tag == "ROMId":
                     rom_id = elem.text
@@ -95,16 +106,24 @@ class OWServerCoordinator(DataUpdateCoordinator):
                     dev_info["channel"] = elem.text
                 elif elem.tag == "Health":
                     dev_info["health"] = elem.text
-                elif elem.tag == "Date" and elem.text:
-                    dev_info["last_seen"] = elem.text.strip()
+                elif elem.tag == "DateTime" and elem.text:
+                    dev_datetime = elem.text.strip()
                 elif elem.tag in ("Temperature", "Humidity", "Pressure", "Light",
                                   "DewPoint", "HeatIndex", "LightLevel"):
                     val = self._parse_value(elem.text, elem.get("Units"))
                     if val is not None:
                         dev_info["sensors"][elem.tag] = val
 
-            if "last_seen" not in dev_info and root_date:
-                dev_info["last_seen"] = root_date
+            if not dev_datetime:
+                if root_datetime:
+                    dev_datetime = root_datetime
+                elif root_date:
+                    dev_datetime = root_date
+                    if root_time:
+                        dev_datetime += " " + root_time
+
+            if dev_datetime:
+                dev_info["last_seen"] = dev_datetime
 
             if not dev_info["sensors"]:
                 for elem in child:
