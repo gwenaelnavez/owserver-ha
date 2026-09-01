@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 from xml.etree import ElementTree
 
 import aiohttp
@@ -40,8 +40,6 @@ class OWServerCoordinator(DataUpdateCoordinator):
         if username and password:
             self._auth = aiohttp.BasicAuth(username, password)
 
-        self.last_seen: datetime | None = None
-
     async def _async_update_data(self) -> dict:
         url = f"{self._base_url}{DETAILS_XML_PATH}"
         timeout = aiohttp.ClientTimeout(total=10)
@@ -53,11 +51,8 @@ class OWServerCoordinator(DataUpdateCoordinator):
                     response.raise_for_status()
                     text = await response.text()
                     if text.strip().startswith("<"):
-                        data = self._parse_xml(text)
-                    else:
-                        data = self._parse_csv(text)
-                    self.last_seen = datetime.now(tz=timezone.utc)
-                    return data
+                        return self._parse_xml(text)
+                    return self._parse_csv(text)
         except (aiohttp.ClientError, OSError) as err:
             raise UpdateFailed(f"Error communicating with OW-SERVER: {err}") from err
         except (TimeoutError, asyncio.TimeoutError) as err:
@@ -69,6 +64,12 @@ class OWServerCoordinator(DataUpdateCoordinator):
         xml_text = re.sub(r'\s+xmlns(:\w+)?="[^"]*"', "", xml_text, count=1)
         root = ElementTree.fromstring(xml_text)
         devices = {}
+
+        root_date = None
+        for elem in root:
+            if elem.tag == "Date" and elem.text:
+                root_date = elem.text.strip()
+                break
 
         for child in root:
             tag = child.tag
@@ -94,11 +95,16 @@ class OWServerCoordinator(DataUpdateCoordinator):
                     dev_info["channel"] = elem.text
                 elif elem.tag == "Health":
                     dev_info["health"] = elem.text
+                elif elem.tag == "Date" and elem.text:
+                    dev_info["last_seen"] = elem.text.strip()
                 elif elem.tag in ("Temperature", "Humidity", "Pressure", "Light",
                                   "DewPoint", "HeatIndex", "LightLevel"):
                     val = self._parse_value(elem.text, elem.get("Units"))
                     if val is not None:
                         dev_info["sensors"][elem.tag] = val
+
+            if "last_seen" not in dev_info and root_date:
+                dev_info["last_seen"] = root_date
 
             if not dev_info["sensors"]:
                 for elem in child:

@@ -118,8 +118,9 @@ class OWServerSensor(CoordinatorEntity, SensorEntity):
             "channel": self._channel,
             "health": self._health,
         }
-        if self.coordinator.last_seen:
-            attrs["last_seen"] = self.coordinator.last_seen.isoformat()
+        data = self.coordinator.data.get(self._rom_id, {})
+        if data.get("last_seen"):
+            attrs["last_seen"] = data["last_seen"]
         return attrs
 
     @property
